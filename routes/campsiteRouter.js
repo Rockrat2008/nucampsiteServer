@@ -91,6 +91,9 @@ campsiteRouter
     }
   );
 
+// campsiste.comment.id(req.params.commentId).author._id
+// req.user._id
+//if((campsiste.comment.id(req.params.commentId).author._id.equals(req.user._id) not 100% correct
 campsiteRouter
   .route("/:campsiteId/comments")
   .get((req, res, next) => {
