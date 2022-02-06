@@ -90,10 +90,6 @@ campsiteRouter
         .catch((err) => next(err));
     }
   );
-
-// campsiste.comment.id(req.params.commentId).author._id
-// req.user._id
-//if((campsiste.comment.id(req.params.commentId).author._id.equals(req.user._id) not 100% correct
 campsiteRouter
   .route("/:campsiteId/comments")
   .get((req, res, next) => {
@@ -226,19 +222,32 @@ campsiteRouter
       })
       .catch((err) => next(err));
   })
+  // req.user._id
+  //if((campsiste.comment.id(req.params.commen
+  // campsiste.comment.id(req.params.commentId).author._idtId).author._id.equals(req.user._id) not 100% correct
   .delete(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
       .then((campsite) => {
         if (campsite && campsite.comments.id(req.params.commentId)) {
-          campsite.comments.id(req.params.commentId).remove();
-          campsite
-            .save()
-            .then((campsite) => {
-              res.statusCode = 200;
-              res.setHeader("Content-Type", "application/json");
-              res.json(campsite);
-            })
-            .catch((err) => next(err));
+          if (
+            campsite.comments
+              .id(req.params.commentId)
+              .author._id.equals(req.user._id)
+          ) {
+            campsite.comments.id(req.params.commentId).remove();
+            campsite
+              .save()
+              .then((campsite) => {
+                res.statusCode = 200;
+                res.setHeader("Content-Type", "application/json");
+                res.json(campsite);
+              })
+              .catch((err) => next(err));
+          } else {
+            err = new Error("You are not authorized to delete this comment!");
+            err.status = 403;
+            return next(err);
+          }
         } else if (!campsite) {
           err = new Error(`Campsite ${req.params.campsiteId} not found`);
           err.status = 404;
