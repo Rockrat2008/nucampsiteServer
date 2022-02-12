@@ -15,6 +15,10 @@ const userSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  facebookId: {
+    type: String,
+    default: "",
+  },
 });
 
 userSchema.plugin(passportLocalMongoose);
