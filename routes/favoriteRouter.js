@@ -20,12 +20,30 @@ favoriteRouter
       .catch((err) => next(err));
   })
   .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    Favorite.create(req.body)
+    Favorite.findOne({
+      user: req.user._id,
+    })
       .then((favorite) => {
-        console.log("Favorite Created ", favorite);
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(favorite);
+        if (favorite) {
+          req.body.forEach((campsite) => {
+            if (!favorite.campsites.includes(campsite._id)) {
+              favorite.campsites.push(campsite._id);
+            }
+          });
+          favorite.save();
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.json(favorite);
+        } else {
+          Favorite.create({
+            campsites: req.body,
+            user: req.user._id,
+          }).then((favorite) => {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            res.json(favorite);
+          });
+        }
       })
       .catch((err) => next(err));
   })
@@ -34,11 +52,16 @@ favoriteRouter
     res.end("PUT operation not supported on /favorites");
   })
   .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    Favorite.deleteMany()
-      .then((response) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(response);
+    Favorite.findOneAndRemove({ user: req.user._id })
+      .then((favorite) => {
+        if (favorite) {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.json(favorite);
+        } else {
+          res.setHeader("Content-Type", "text/plain");
+          res.end("There is no favorite");
+        }
       })
       .catch((err) => next(err));
   });
@@ -49,27 +72,60 @@ favoriteRouter
   .get(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end(
-      `GET operation not supported on /favorites/${req.params.favoriteId}`
+      `GET operation not supported on /favorites/${req.params.campsiteId}`
     );
   })
-  .post(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
-    res.statusCode = 403;
-    res.end(
-      `POST operation not supported on /favorites/${req.params.favoriteId}`
-    );
+  .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
+    Favorite.findOne({ user: req.user._id })
+      .then((favorite) => {
+        if (favorite) {
+          if (!favorite.campsites._id.includes(req.params.campsiteId)) {
+            favorite.campsites.push(campsite._id);
+          }
+          favorite.save();
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          res.json(favorite);
+        } else {
+          Favorite.create({
+            campsites: [req.params.campsiteId],
+            user: req.user._id,
+          }).then((favorite) => {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            res.json(favorite);
+          });
+        }
+      })
+      .catch((err) => next(err));
   })
   .put(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end(
-      `PUT operation not supported on /favorites/${req.params.favoriteId}`
+      `PUT operation not supported on /favorites/${req.params.campsiteId}`
     );
   })
   .delete(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
-    Favorite.findByIdAndDelete(req.params.favoriteId)
-      .then((response) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(response);
+    Favorite.findOne({ user: req.user._id })
+      .then((favorite) => {
+        if (favorite) {
+          const index = favorite.campsites.indexOf(req.params.campsiteId);
+          if (index >= 0) {
+            favorite.campsites.splice(index, 1);
+          }
+          favorite
+            .save()
+            .then((favorite) => {
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/json");
+              res.json(favorite);
+            })
+            .catch((err) => next(err));
+        } else {
+          res.statusCode = 200;
+          res.setHeader("content-type", "text/plain");
+          res.end("You do not have any favorites to delete");
+        }
       })
       .catch((err) => next(err));
   });
